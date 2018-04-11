@@ -5,6 +5,9 @@ package streetmarker.aoikonom.sdy.streetmarker.data;
  */
 
 public class PathFB {
+    private String name;
+    private String desciption;
     private String createdByUser;
     private String coordinates;
+    private String type;
 }

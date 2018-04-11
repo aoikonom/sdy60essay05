@@ -49,10 +49,13 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.util.List;
+
 import streetmarker.aoikonom.sdy.streetmarker.*;
 import streetmarker.aoikonom.sdy.streetmarker.data.DB;
 import streetmarker.aoikonom.sdy.streetmarker.data.IPathsRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.IUserRetrieval;
+import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.GamePhase;
@@ -376,6 +379,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
         onGamePhaseChanged();
+    }
+
+    void onPathFinished(Coordinates coordinates) {
+        
     }
 
 
