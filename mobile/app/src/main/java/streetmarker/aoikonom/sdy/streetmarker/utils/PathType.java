@@ -17,7 +17,7 @@ public enum PathType {
         mIcon = icon;
     }
 
-    int getIcon() {
+    public int getIcon() {
         return mIcon;
     }
 

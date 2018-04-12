@@ -8,6 +8,58 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:588225431931:android:ed59467da0177402",
+        "android_client_info": {
+          "package_name": "com.streetgame.aoikonom.streetgame"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "588225431931-0895t1890a5ll9d4rd6hl6g58icckq1t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.streetgame.aoikonom.streetgame",
+            "certificate_hash": "bbee54dd471d3ec5eb7d8c575af8cbd7a26e45ec"
+          }
+        },
+        {
+          "client_id": "588225431931-i6l1i1oiftssflc9d127bd0t61ag7r4n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.streetgame.aoikonom.streetgame",
+            "certificate_hash": "fe140cb11d6185f09ae0b1536f6c1db4b6403680"
+          }
+        },
+        {
+          "client_id": "588225431931-fkcvja5dkgs20cqa2ri6g7eufk81jk0s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJKpzlrG2UuLuWCYVH4xmEdiTI50LBb_E"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "588225431931-fkcvja5dkgs20cqa2ri6g7eufk81jk0s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:588225431931:android:8a67ed6ab9946e4c",
         "android_client_info": {
           "package_name": "sdy.aoikonom.energysaver"
@@ -60,18 +112,62 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:588225431931:android:ed59467da0177402",
+        "mobilesdk_app_id": "1:588225431931:android:c974410a6a1f6dbe",
         "android_client_info": {
-          "package_name": "com.streetgame.aoikonom.streetgame"
+          "package_name": "sdy.aoikonom.streetgame"
         }
       },
       "oauth_client": [
         {
-          "client_id": "588225431931-i6l1i1oiftssflc9d127bd0t61ag7r4n.apps.googleusercontent.com",
+          "client_id": "588225431931-2eair027tl4csch62m7f4khfpo0qavmn.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.streetgame.aoikonom.streetgame",
-            "certificate_hash": "fe140cb11d6185f09ae0b1536f6c1db4b6403680"
+            "package_name": "sdy.aoikonom.streetgame",
+            "certificate_hash": "bbee54dd471d3ec5eb7d8c575af8cbd7a26e45ec"
+          }
+        },
+        {
+          "client_id": "588225431931-fkcvja5dkgs20cqa2ri6g7eufk81jk0s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJKpzlrG2UuLuWCYVH4xmEdiTI50LBb_E"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "588225431931-fkcvja5dkgs20cqa2ri6g7eufk81jk0s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588225431931:android:f2c3e21a642093ad",
+        "android_client_info": {
+          "package_name": "streetmarker.aoikonom.sdy.streetmarker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "588225431931-796ql3knm0i9fgu797nirna5v1ln7m51.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "streetmarker.aoikonom.sdy.streetmarker",
+            "certificate_hash": "bbee54dd471d3ec5eb7d8c575af8cbd7a26e45ec"
           }
         },
         {

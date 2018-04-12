@@ -2,17 +2,10 @@ package streetmarker.aoikonom.sdy.streetmarker.activities;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.location.Location;
-import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
@@ -26,7 +19,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -43,26 +35,26 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.List;
-
 import streetmarker.aoikonom.sdy.streetmarker.*;
 import streetmarker.aoikonom.sdy.streetmarker.data.DB;
-import streetmarker.aoikonom.sdy.streetmarker.data.IPathsRetrieval;
+import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.IUserRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.GamePhase;
-import streetmarker.aoikonom.sdy.streetmarker.utils.GeofenceUtils;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
-        IPathsRetrieval, IUserRetrieval, View.OnClickListener {
+        IPathRetrieval, IUserRetrieval, View.OnClickListener {
 
     private static final int REQUEST_LOCATION = 1;
     private static final int REQUEST_RESOLVE_ERROR = 2;
@@ -82,7 +74,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Marker mCurrentPosMarker;
     private boolean mResolvingError = false;
 
-    private Path mCurrentPath;
+    private Coordinates mCurrentCoordinates;
+    private Polyline mCurrentPolyline;
     private UserInfo mUserInfo;
 
     @Override
@@ -94,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        mRecordImageView = findViewById(R.id.action_icon);
+        mRecordImageView = findViewById(R.id.record_icon);
         mRecordImageView.setOnClickListener(this);
 
         //Instantiating the GoogleApiClient
@@ -118,7 +111,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             };
         };
-         registerGeofenceReceiver();
     }
 
     @Override
@@ -176,12 +168,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onLocationAquired(Location location) {
-        if (mCurrentLocation != null) {
-            if (mAddedLcoation == null || mAddedLcoation.distanceTo(location) > TRACK_DISTANCE_MORE_THAN)
-                if (mCurrentPath != null) {
-                    mCurrentPath.addCoordinate(new LatLng(location.getLatitude(), location.getLongitude()));
-                    mAddedLcoation = location;
+        if (mGamePhase == GamePhase.Recording && mCurrentLocation != null) {
+            if (mAddedLcoation == null || mAddedLcoation.distanceTo(location) > TRACK_DISTANCE_MORE_THAN) {
+                if (mCurrentCoordinates == null)
+                    mCurrentCoordinates = new Coordinates();
+                mCurrentCoordinates.add(new LatLng(location.getLatitude(), location.getLongitude()));
+                if (mCurrentPolyline != null) {
+                    mCurrentPolyline.setPoints(mCurrentCoordinates.getPoints());
                 }
+                mAddedLcoation = location;
+            }
         }
 
         mCurrentLocation = location;
@@ -316,74 +312,77 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    @Override
-    public void onPathRetrieved(Path path) {
-    }
 
     @Override
     public void onUserRetrieved(UserInfo userInfo) {
         mUserInfo = userInfo;
+        if (mUserInfo == null) {
+            mUserInfo = new UserInfo(FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
+//            DB.addUserInfo(FirebaseAuth.getInstance().getUid(), mUserInfo);
+        }
+
+        DB.retrievePaths(this);
+    }
+
+    private void onStartRecordingPath() {
+        mRecordImageView.setImageResource(R.drawable.ic_stop_record);
+        mCurrentCoordinates = new Coordinates();
+        String msg = "Move arround to create a path \n\n";
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+        mCurrentPolyline = empryPolyline();
+    }
+
+    private void onStopRecordingPath() {
+        mRecordImageView.setImageResource(R.drawable.ic_record);
+        onPathFinished(mCurrentCoordinates);
     }
 
     private void onGamePhaseChanged() {
-
-        if (mGamePhase == GamePhase.NotRecording)
-            mRecordImageView.setImageResource(R.drawable.ic_record);
+        if (mGamePhase == GamePhase.Recording)
+            onStartRecordingPath();
         else
-            mRecordImageView.setImageResource(R.drawable.ic_stop_record);
-    }
-
-    private void onEnterRegion(boolean entering) {
-
-    }
-
-    private void onGeofenceTransition(int transitionStatus) {
-        switch (transitionStatus) {
-            case Geofence.GEOFENCE_TRANSITION_DWELL:
-            case Geofence.GEOFENCE_TRANSITION_ENTER:
-                onEnterRegion(true);
-                break;
-            case Geofence.GEOFENCE_TRANSITION_EXIT:
-                onEnterRegion(false);
-                break;
-        }
-    }
-
-    private void registerGeofenceReceiver() {
-        mGeofenceReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction() == GeofenceUtils.GEOFENCE_ACTION) {
-                    int status = intent.getIntExtra(GeofenceUtils.GEOFENCE_EXTRA_TRANSITION, -1);
-                    MainActivity.this.onGeofenceTransition(status);
-                }
-            }
-        };
-        LocalBroadcastManager.getInstance(this).registerReceiver(mGeofenceReceiver, new IntentFilter(GeofenceUtils.GEOFENCE_ACTION));
+            onStopRecordingPath();
     }
 
     @Override
     public void onClick(View v) {
         if (v == mRecordImageView) {
             if (mGamePhase == GamePhase.NotRecording) {
-                mGamePhase = GamePhase.Recordng;
-                mCurrentPath = new Path(mUserInfo.getUserName());
-                String msg = "Move arround to create a path \n\n";
-                Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                mGamePhase = GamePhase.Recording;
             } else if (mGamePhase == GamePhase.Recording) {
                 mGamePhase = GamePhase.NotRecording;
-                Intent intent = new Intent(this, RegionActivity.class);
-                intent.putExtra("user", mUserInfo);
-                intent.putExtra("target", mCurrentPath);
-                startActivity(intent);
             }
         }
         onGamePhaseChanged();
     }
 
     void onPathFinished(Coordinates coordinates) {
-        
+        if (coordinates == null || coordinates.size() == 0) return;
+        AddPathDialog dialog = AddPathDialog.newInstance(mUserInfo.getUserName(), coordinates);
+        dialog.show(getFragmentManager(), "AddPathDialog");
     }
 
+    @Override
+    public void onPathAdded(Path path,boolean newPath) {
+        if (newPath)
+            DB.addPath(path);
+        else
+            drawPath(path);
+    }
 
+    public Polyline drawPath(Path path) {
+        PolylineOptions polylineOptions = new PolylineOptions();
+        boolean createdByMe = path.getmCreatedByUser().equals(mUserInfo.getUserName());
+        polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
+        polylineOptions.add(path.getmCoordinates().getPoints().toArray(new LatLng[path.getmCoordinates().size()]));
+        return mMap.addPolyline(polylineOptions);
+
+    }
+
+    public Polyline empryPolyline() {
+        PolylineOptions polylineOptions = new PolylineOptions();
+        boolean createdByMe = true;
+        polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
+        return mMap.addPolyline(polylineOptions);
+    }
 }

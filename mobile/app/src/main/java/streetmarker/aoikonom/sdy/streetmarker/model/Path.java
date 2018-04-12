@@ -2,6 +2,7 @@ package streetmarker.aoikonom.sdy.streetmarker.model;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,8 +28,12 @@ public class Path {
         this.mPathType = pathType;
     }
 
-    public static Path fromPathFB(PathFB pathFB) {
-        throw new UnsupportedOperationException("Path.fromJSSON");
+    public static Path fromPathFB(PathFB pathFB) throws ParseException {
+        return new Path(pathFB.getName(), pathFB.getDesciption(), pathFB.getCreatedByUser(), Coordinates.fromString(pathFB.getCoordinates()), PathType.valueOf(pathFB.getType()));
+    }
+
+    public PathFB toPathFB() {
+        return new PathFB(mName, mDescription, mCreatedByUser, mCoordinates.toString(), mPathType.name());
     }
 
     public String getmName() {

@@ -10,6 +10,8 @@ import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 
+import java.text.ParseException;
+
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 
@@ -19,15 +21,26 @@ import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 
 public class DB {
 
-    public static void retrievePaths(final IPathsRetrieval retrieval) {
+    public static void addUserInfo(String userID,UserInfo userInfo) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Users/");
+        ref.child(userID).setValue(userInfo);
+    }
+
+    public static void retrievePaths(final IPathRetrieval retrieval) {
         FirebaseDatabase db = FirebaseDatabase.getInstance();
         DatabaseReference targetRef = db.getReference("/StreetMarker/Paths");
         targetRef.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 PathFB pathFB = dataSnapshot.getValue(PathFB.class);
-                if (retrieval != null)
-                    retrieval.onPathAdded(Path.fromPathFB(pathFB));
+                if (retrieval != null) {
+                    try {
+                        retrieval.onPathAdded(Path.fromPathFB(pathFB), false);
+                    }
+                    catch (ParseException ex) {
+                        ex.printStackTrace();
+                    }
+                }
 
             }
 
@@ -55,11 +68,13 @@ public class DB {
 
     public static void retrieveUserInfo(final String userId, final IUserRetrieval retrieval) {
         FirebaseDatabase db = FirebaseDatabase.getInstance();
-        DatabaseReference targetRef = db.getReference("/StreetGame/Users/" + userId);
+        DatabaseReference targetRef = db.getReference("/StreetMarker/Users/" + userId);
         targetRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                UserInfo userInfo = dataSnapshot.getValue(UserInfo.class);
+                UserInfo userInfo = null;
+                if (dataSnapshot.exists())
+                userInfo = dataSnapshot.getValue(UserInfo.class);
                 if (retrieval != null)
                     retrieval.onUserRetrieved(userInfo);
             }
@@ -73,11 +88,10 @@ public class DB {
         });
     }
 
-    public static void saveUserLocation(LatLng location) {
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetGame/Traversals/");
+    public static void addPath(Path path) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Paths/");
         String key = ref.push().getKey();
-        ref.child(key).child("location").setValue(location);
-        ref.child(key).child("at_time").setValue(ServerValue.TIMESTAMP);
+        ref.child(key).setValue(path.toPathFB());
     }
 
 

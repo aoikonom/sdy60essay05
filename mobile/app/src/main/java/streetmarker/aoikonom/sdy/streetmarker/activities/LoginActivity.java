@@ -141,19 +141,14 @@ public class LoginActivity extends AppCompatActivity {
 
     public void onAfterSignedIn() {
         String uid = FirebaseAuth.getInstance().getUid();
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("/StreetGame/Users");
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("/StreetMarker/Users");
         ref.child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.exists()) {
                     String uid = FirebaseAuth.getInstance().getUid();
-                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("/StreetGame/Users").child(uid);
-                    ref.child("currentMission").setValue(1);
-                    ref.child("currentTarget").setValue("1_1");
-                    ref.child("distanceCovered").setValue(0);
-                    ref.child("score").setValue(0);
-                    ref.child("targetsCompleted").setValue(0);
-                    ref.child("userName").setValue(LoginActivity.getUserName(FirebaseAuth.getInstance().getCurrentUser().getEmail()));
+                    DatabaseReference ref = FirebaseDatabase.getInstance().getReference("/StreetMarker/Users").child(uid);
+                    ref.child("userName").setValue(LoginActivity.getUserName(FirebaseAuth.getInstance().getCurrentUser().getDisplayName()));
 
                     openMainActivity();
                 }

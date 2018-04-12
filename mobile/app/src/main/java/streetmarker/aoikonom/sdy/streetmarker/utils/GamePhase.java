@@ -6,5 +6,5 @@ package streetmarker.aoikonom.sdy.streetmarker.utils;
 
 public enum GamePhase {
     NotRecording,
-    Recordng
+    Recording
 }

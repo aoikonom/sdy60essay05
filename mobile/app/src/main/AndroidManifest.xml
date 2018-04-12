@@ -50,7 +50,6 @@
 
         <service android:name="streetmarker.aoikonom.sdy.streetmarker.activities.GeofenceTrasitionService" />
 
-        <activity android:name="streetmarker.aoikonom.sdy.streetmarker.activities.RegionActivity" />
         <activity android:name="streetmarker.aoikonom.sdy.streetmarker.activitiesVideoActivity"></activity>
     </application>
 
