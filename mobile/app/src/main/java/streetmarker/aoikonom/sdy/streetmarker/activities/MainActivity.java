@@ -65,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleApiClient mGoogleApiClient;
     private Location mCurrentLocation;
     private Location mAddedLcoation;
+    private boolean cameraInitialized = false;
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
     private FusedLocationProviderClient mFusedLocationClient;
@@ -117,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
+        cameraInitialized = false;
     }
 
     @Override
@@ -181,7 +183,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         mCurrentLocation = location;
-        initCamera(mCurrentLocation);
+        if (mGamePhase == GamePhase.Recording || !cameraInitialized)
+            initCamera(mCurrentLocation);
         if (mCurrentPosMarker == null)
             mCurrentPosMarker = mMap.addMarker(new MarkerOptions().
                     position(new LatLng(location.getLatitude(), location.getLongitude())).
@@ -265,6 +268,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         mMap.getUiSettings().setZoomControlsEnabled( true );
+
+        cameraInitialized = true;
     }
 
 
@@ -375,6 +380,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         boolean createdByMe = path.getmCreatedByUser().equals(mUserInfo.getUserName());
         polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
         polylineOptions.add(path.getmCoordinates().getPoints().toArray(new LatLng[path.getmCoordinates().size()]));
+        if (path.getmCoordinates().size() > 0) {
+            LatLng latLng = path.getmCoordinates().getPoints().get(0);
+            mMap.addMarker(new MarkerOptions().
+                    position(latLng).
+                    title(path.getmName()).icon(BitmapDescriptorFactory.fromResource(path.getmPathType().getIcon())));
+        }
+
         return mMap.addPolyline(polylineOptions);
 
     }
