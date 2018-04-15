@@ -16,6 +16,7 @@ import streetmarker.aoikonom.sdy.streetmarker.adapters.PathTypeAdapter;
 import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
+import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.PathType;
 
 import static android.content.DialogInterface.BUTTON_POSITIVE;
@@ -79,9 +80,9 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
         switch (which) {
             case BUTTON_POSITIVE:
                 String name = mNameTextView.getText().toString();
-                String description = mNameTextView.getText().toString();
+                String description = mDescriptionTextView.getText().toString();
                 PathType pathType = (PathType) mTypeSpinner.getSelectedItem();
-                Path path = new Path(null, name, description, mUserName,  mCoordinates, pathType, 0, 0);
+                Path path = new Path(null, name, description, UserInfo.getInstance().getUserName(),  UserInfo.getInstance().getKey(), mCoordinates, pathType, 0, 0);
                 if (mListener != null)
                     mListener.onPathAdded(path, true);
         }

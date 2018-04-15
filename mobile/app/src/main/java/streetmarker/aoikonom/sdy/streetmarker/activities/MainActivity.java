@@ -330,9 +330,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onUserRetrieved(UserInfo userInfo) {
         if (userInfo != null)
-            UserInfo.newInstance(userInfo.getUserName());
+            UserInfo.setmInstance(userInfo);
         else {
-            UserInfo.newInstance(FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
+            UserInfo.newInstance(FirebaseAuth.getInstance().getUid(), FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
 //            DB.addUserInfo(FirebaseAuth.getInstance().getUid(), mUserInfo);
         }
 

@@ -53,6 +53,8 @@ public class AddReviewDialog extends DialogFragment implements DialogInterface.O
         mRatingBar = dialogView.findViewById(R.id.rating);
         mRatingBar.setNumStars(5);
 
+        mUserNameTextView.setText(UserInfo.getInstance().getUserName());
+
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(R.string.write_review)
                 .setPositiveButton("OK", this)
@@ -62,7 +64,7 @@ public class AddReviewDialog extends DialogFragment implements DialogInterface.O
 
                     }
                 })
-                .setCancelable(true)
+                .setCancelable(false)
                 .setView(dialogView);
 
         return builder.create();

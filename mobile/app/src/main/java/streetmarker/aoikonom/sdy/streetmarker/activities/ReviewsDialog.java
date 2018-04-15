@@ -76,9 +76,12 @@ public class ReviewsDialog extends DialogFragment implements View.OnClickListene
             mNameTextView.setText(mPath.getName());
             mDescriptionTextView.setText(mPath.getDescription());
             mTypeImageView.setImageResource(mPath.getPathType().getIcon());
-            mRatingTextView.setText(String.valueOf(mPath.getAvgRating()));
-            if (mPath.getRatingsCount() != 0)
+            if (mPath.getRatingsCount() != 0) {
+                mRatingTextView.setText(String.valueOf(mPath.getAvgRating()));
                 mRatingBar.setRating(mPath.getAvgRating());
+            }
+            else
+                mRatingTextView.setText("-");
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());

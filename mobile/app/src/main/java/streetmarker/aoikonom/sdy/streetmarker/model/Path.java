@@ -18,16 +18,18 @@ public class Path {
     private String mName;
     private String mDescription;
     private Coordinates mCoordinates;
+    private String mCreateByUserId;
     private String mCreatedByUser;
     private PathType mPathType;
     private int mRatingsCount;
-    private int mTotalRating;
+    private float mTotalRating;
 
-    public Path(String key,String name,String description,String createdByUser,Coordinates coordinates,PathType pathType,int ratingsCount,int totalRating) {
+    public Path(String key,String name,String description,String createdByUser,String createByUserId,Coordinates coordinates,PathType pathType,int ratingsCount,float totalRating) {
         this.mKey = key;
         this.mName = name;
         this.mDescription = description;
         this.mCreatedByUser = createdByUser;
+        this.mCreateByUserId = createByUserId;
         this.mCoordinates = coordinates;
         this.mPathType = pathType;
         this.mRatingsCount = ratingsCount;
@@ -35,12 +37,12 @@ public class Path {
     }
 
     public static Path fromPathFB(String key,PathFB pathFB) throws ParseException {
-        return new Path(key, pathFB.getName(), pathFB.getDesciption(), pathFB.getCreatedByUser(), Coordinates.fromString(pathFB.getCoordinates()),
+        return new Path(key, pathFB.getName(), pathFB.getDesciption(), pathFB.getCreatedByUser(), pathFB.getCreatedByUserId(), Coordinates.fromString(pathFB.getCoordinates()),
                 PathType.valueOf(pathFB.getType()), pathFB.getRatingsCount(), pathFB.getTotalRating());
     }
 
     public PathFB toPathFB() {
-        return new PathFB(mName, mDescription, mCreatedByUser, mCoordinates.toString(), mPathType.name(), mRatingsCount, mTotalRating);
+        return new PathFB(mName, mDescription, mCreatedByUser, mCreateByUserId, mCoordinates.toString(), mPathType.name(), mRatingsCount, mTotalRating);
     }
 
     public String getName() {
@@ -59,6 +61,8 @@ public class Path {
         return mCreatedByUser;
     }
 
+    public String getCreateByUserId() { return mCreateByUserId; }
+
     public PathType getPathType() {
         return mPathType;
     }
@@ -67,7 +71,7 @@ public class Path {
         return mRatingsCount;
     }
 
-    public int getTotalRating() {
+    public float getTotalRating() {
         return mTotalRating;
     }
 
@@ -84,5 +88,10 @@ public class Path {
 
     public void setKey(String key) {
         this.mKey = key;
+    }
+
+    public void addRating(float rating) {
+        mTotalRating += rating;
+        mRatingsCount ++;
     }
 }
