@@ -80,8 +80,8 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
             case BUTTON_POSITIVE:
                 String name = mNameTextView.getText().toString();
                 String description = mNameTextView.getText().toString();
-                PathType pathTYpe = (PathType) mTypeSpinner.getSelectedItem();
-                Path path = new Path(name, description, mUserName,  mCoordinates, pathTYpe);
+                PathType pathType = (PathType) mTypeSpinner.getSelectedItem();
+                Path path = new Path(null, name, description, mUserName,  mCoordinates, pathType, 0, 0);
                 if (mListener != null)
                     mListener.onPathAdded(path, true);
         }

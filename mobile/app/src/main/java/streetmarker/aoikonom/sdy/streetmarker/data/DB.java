@@ -13,6 +13,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.ParseException;
 
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
+import streetmarker.aoikonom.sdy.streetmarker.model.Review;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 
 /**
@@ -35,7 +36,8 @@ public class DB {
                 PathFB pathFB = dataSnapshot.getValue(PathFB.class);
                 if (retrieval != null) {
                     try {
-                        retrieval.onPathAdded(Path.fromPathFB(pathFB), false);
+                        String key = dataSnapshot.getKey();
+                        retrieval.onPathAdded(Path.fromPathFB(key, pathFB), false);
                     }
                     catch (ParseException ex) {
                         ex.printStackTrace();
@@ -92,6 +94,14 @@ public class DB {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Paths/");
         String key = ref.push().getKey();
         ref.child(key).setValue(path.toPathFB());
+        path.setKey(key);
+    }
+
+    public static void addReview(Path path,Review review) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Reviews/").child(path.getKey());
+        String key = ref.push().getKey();
+        ref.child(key).setValue(review);
+
     }
 
 

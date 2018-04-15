@@ -9,4 +9,6 @@
     <string name="sign_in_cancelled">Sign in canceled</string>
     <string name="unknown_error">Unknown Error</string>
     <string name="add_path">Add Path</string>
+    <string name="reviews">Reviews</string>
+    <string name="write_review">Write Review</string>
 </resources>

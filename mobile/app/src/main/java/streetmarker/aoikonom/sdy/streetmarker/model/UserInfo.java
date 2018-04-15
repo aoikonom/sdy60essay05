@@ -9,10 +9,17 @@ import java.io.Serializable;
 public class UserInfo implements Serializable {
     String userName;
 
-    int targetsCompleted;
-
-    public UserInfo(String userName) {
+    private UserInfo(String userName) {
         this.userName = userName;
+    }
+
+    private static UserInfo mInstance;
+
+    public static UserInfo getInstance() { return mInstance; }
+
+    public static UserInfo newInstance(String name) {
+        mInstance = new UserInfo(name);
+        return mInstance;
     }
 
     public UserInfo() {

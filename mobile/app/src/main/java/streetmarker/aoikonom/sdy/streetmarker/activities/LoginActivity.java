@@ -30,6 +30,8 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseUser mPrevUser;
     private FirebaseAuth.AuthStateListener mAuthListener;
     private boolean mDuringSignIn = false;
+    private boolean mSignInAsDifferentUser = false;
+    public static String SIGNIN_DIFFERENT_USER = "SignIsAsDifferentUser";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +39,9 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         mAuth = FirebaseAuth.getInstance();
+
+        if (getIntent().hasExtra(SIGNIN_DIFFERENT_USER))
+            mSignInAsDifferentUser = getIntent().getBooleanExtra(SIGNIN_DIFFERENT_USER, false);
     }
 
     @Override
@@ -92,8 +97,10 @@ public class LoginActivity extends AppCompatActivity {
         if (auth.getCurrentUser() != null) {
             onAfterSignedIn();
         }
-        else
+        else if (!mSignInAsDifferentUser)
             signIn();
+        else
+            signOut();
     }
 
     private void handleSignInResponse(int resultCode, Intent data) {

@@ -10,13 +10,17 @@ public class PathFB {
     private String createdByUser;
     private String coordinates;
     private String type;
+    private int ratingsCount;
+    private int totalRating;
 
-    public PathFB(String name, String desciption, String createdByUser, String coordinates, String type) {
+    public PathFB(String name, String desciption, String createdByUser, String coordinates, String type,int ratingsCount,int totalRating) {
         this.name = name;
         this.desciption = desciption;
         this.createdByUser = createdByUser;
         this.coordinates = coordinates;
         this.type = type;
+        this.ratingsCount = ratingsCount;
+        this.totalRating = totalRating;
     }
 
     public PathFB() {
@@ -41,5 +45,13 @@ public class PathFB {
 
     public String getType() {
         return type;
+    }
+
+    public int getRatingsCount() {
+        return ratingsCount;
+    }
+
+    public int getTotalRating() {
+        return totalRating;
     }
 }
