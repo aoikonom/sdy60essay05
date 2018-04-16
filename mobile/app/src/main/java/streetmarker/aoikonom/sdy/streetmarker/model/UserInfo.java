@@ -7,20 +7,57 @@ import java.io.Serializable;
  */
 
 public class UserInfo implements Serializable {
-    String userName;
+    private String userName;
+    private String key;
+    private float totalRating;
+    private int ratingsCount;
 
-    int targetsCompleted;
 
-    public UserInfo(String userName) {
+    private UserInfo(String key,String userName) {
+        this.key = key;
         this.userName = userName;
+    }
+
+    private static UserInfo mInstance;
+
+    public static UserInfo getInstance() { return mInstance; }
+
+    public static void setmInstance(UserInfo userInfo) {
+        mInstance = userInfo;
+    }
+
+    public static UserInfo newInstance(String key,String name) {
+        mInstance = new UserInfo(key, name);
+        return mInstance;
     }
 
     public UserInfo() {
 
     }
 
+    public void setKey(String key) {
+        this.key = key;
+    }
+
     public String getUserName() {
         return userName;
     }
 
+    public String getKey() {
+        return key;
+    }
+
+
+    public void addRating(float rating) {
+        totalRating += rating;
+        ratingsCount ++;
+    }
+
+    public float getTotalRating() {
+        return totalRating;
+    }
+
+    public int getRatingsCount() {
+        return ratingsCount;
+    }
 }

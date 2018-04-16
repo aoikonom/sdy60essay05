@@ -13,6 +13,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.ParseException;
 
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
+import streetmarker.aoikonom.sdy.streetmarker.model.Review;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 
 /**
@@ -35,7 +36,8 @@ public class DB {
                 PathFB pathFB = dataSnapshot.getValue(PathFB.class);
                 if (retrieval != null) {
                     try {
-                        retrieval.onPathAdded(Path.fromPathFB(pathFB), false);
+                        String key = dataSnapshot.getKey();
+                        retrieval.onPathAdded(Path.fromPathFB(key, pathFB), false);
                     }
                     catch (ParseException ex) {
                         ex.printStackTrace();
@@ -73,10 +75,12 @@ public class DB {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 UserInfo userInfo = null;
-                if (dataSnapshot.exists())
-                userInfo = dataSnapshot.getValue(UserInfo.class);
-                if (retrieval != null)
-                    retrieval.onUserRetrieved(userInfo);
+                if (dataSnapshot.exists()) {
+                    userInfo = dataSnapshot.getValue(UserInfo.class);
+                    userInfo.setKey(dataSnapshot.getKey());
+                    if (retrieval != null)
+                        retrieval.onUserRetrieved(userInfo);
+                }
             }
 
             @Override
@@ -92,6 +96,59 @@ public class DB {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Paths/");
         String key = ref.push().getKey();
         ref.child(key).setValue(path.toPathFB());
+        path.setKey(key);
+    }
+
+    public static void addReview(final Path path,final Review review) {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Reviews/").child(path.getKey());
+        String key = ref.push().getKey();
+        ref.child(key).setValue(review);
+
+        ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Paths/").child(path.getKey());
+        ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Long ratingsCount = (Long) dataSnapshot.child("ratings_count").getValue();
+                Float totalRating = (Float) dataSnapshot.child("total_rating").getValue();
+                if (ratingsCount == null)
+                    ratingsCount = new Long(0);
+                if (totalRating == null)
+                    totalRating = new Float(0);
+                ratingsCount = new Long(ratingsCount.intValue() + 1);
+                totalRating = new Float(totalRating.floatValue() + review.getRating());
+                dataSnapshot.child("ratings_count").getRef().setValue(ratingsCount);
+                dataSnapshot.child("total_rating").getRef().setValue(totalRating);
+                path.addRating(review.getRating());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Users/").child(path.getCreateByUserId());
+        ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Long ratingsCount = (Long) dataSnapshot.child("ratings_count").getValue();
+                Float totalRating = (Float) dataSnapshot.child("total_rating").getValue();
+                if (ratingsCount == null)
+                    ratingsCount = new Long(0);
+                if (totalRating == null)
+                    totalRating = new Float(0);
+                ratingsCount = new Long(ratingsCount.intValue() + 1);
+                totalRating = new Float(totalRating.floatValue() + review.getRating());
+                dataSnapshot.child("ratings_count").getRef().setValue(ratingsCount);
+                dataSnapshot.child("total_rating").getRef().setValue(totalRating);
+            }
+
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
 

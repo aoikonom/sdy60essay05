@@ -2,6 +2,7 @@ package streetmarker.aoikonom.sdy.streetmarker.activities;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -35,7 +36,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -43,6 +43,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import streetmarker.aoikonom.sdy.streetmarker.*;
 import streetmarker.aoikonom.sdy.streetmarker.data.DB;
@@ -54,7 +57,7 @@ import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.GamePhase;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
-        IPathRetrieval, IUserRetrieval, View.OnClickListener {
+        IPathRetrieval, IUserRetrieval, View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnPolylineClickListener {
 
     private static final int REQUEST_LOCATION = 1;
     private static final int REQUEST_RESOLVE_ERROR = 2;
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final float TRACK_DISTANCE_MORE_THAN = 5;
     private GoogleMap mMap;
     private ImageView mRecordImageView;
+    private ImageView mSighoutImageView;
     private GoogleApiClient mGoogleApiClient;
     private Location mCurrentLocation;
     private Location mAddedLcoation;
@@ -70,14 +74,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationCallback mLocationCallback;
     private FusedLocationProviderClient mFusedLocationClient;
     private GamePhase mGamePhase = GamePhase.NotRecording;
-    private BroadcastReceiver mGeofenceReceiver;
 
     private Marker mCurrentPosMarker;
     private boolean mResolvingError = false;
 
     private Coordinates mCurrentCoordinates;
     private Polyline mCurrentPolyline;
-    private UserInfo mUserInfo;
+
+    private Map<Marker, Path> mMarkerToPath = new HashMap<>();
+    private Map<Polyline, Path> mPolylineToPath = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +95,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mRecordImageView = findViewById(R.id.record_icon);
         mRecordImageView.setOnClickListener(this);
+
+        mSighoutImageView = findViewById(R.id.logout_icon);
+        mSighoutImageView.setOnClickListener(this);
 
         //Instantiating the GoogleApiClient
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -130,7 +138,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mGeofenceReceiver);
     }
 
     private void startLocationUpdates() {
@@ -154,6 +161,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setOnMarkerClickListener(this);
+        mMap.setOnPolylineClickListener(this);
 
     }
 
@@ -320,9 +329,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onUserRetrieved(UserInfo userInfo) {
-        mUserInfo = userInfo;
-        if (mUserInfo == null) {
-            mUserInfo = new UserInfo(FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
+        if (userInfo != null)
+            UserInfo.setmInstance(userInfo);
+        else {
+            UserInfo.newInstance(FirebaseAuth.getInstance().getUid(), FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
 //            DB.addUserInfo(FirebaseAuth.getInstance().getUid(), mUserInfo);
         }
 
@@ -357,13 +367,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             } else if (mGamePhase == GamePhase.Recording) {
                 mGamePhase = GamePhase.NotRecording;
             }
+            onGamePhaseChanged();
         }
-        onGamePhaseChanged();
+        else if (v == mSighoutImageView) {
+            signOut();
+        }
+    }
+
+    void signOut() {
+        FirebaseAuth.getInstance().signOut();
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.putExtra(LoginActivity.SIGNIN_DIFFERENT_USER, true);
+        startActivity(intent);
+        finish();
     }
 
     void onPathFinished(Coordinates coordinates) {
         if (coordinates == null || coordinates.size() == 0) return;
-        AddPathDialog dialog = AddPathDialog.newInstance(mUserInfo.getUserName(), coordinates);
+        AddPathDialog dialog = AddPathDialog.newInstance(UserInfo.getInstance().getUserName(), coordinates);
         dialog.show(getFragmentManager(), "AddPathDialog");
     }
 
@@ -375,19 +396,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             drawPath(path);
     }
 
-    public Polyline drawPath(Path path) {
+    public Polyline drawPath(final Path path) {
         PolylineOptions polylineOptions = new PolylineOptions();
-        boolean createdByMe = path.getmCreatedByUser().equals(mUserInfo.getUserName());
+        boolean createdByMe = path.getCreatedByUser().equals(UserInfo.getInstance().getUserName());
         polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
-        polylineOptions.add(path.getmCoordinates().getPoints().toArray(new LatLng[path.getmCoordinates().size()]));
-        if (path.getmCoordinates().size() > 0) {
-            LatLng latLng = path.getmCoordinates().getPoints().get(0);
-            mMap.addMarker(new MarkerOptions().
+        polylineOptions.add(path.getCoordinates().getPoints().toArray(new LatLng[path.getCoordinates().size()]));
+        if (path.getCoordinates().size() > 0) {
+            LatLng latLng = path.getCoordinates().getPoints().get(0);
+            Marker marker = mMap.addMarker(new MarkerOptions().
                     position(latLng).
-                    title(path.getmName()).icon(BitmapDescriptorFactory.fromResource(path.getmPathType().getIcon())));
+                    title(path.getName()).icon(BitmapDescriptorFactory.fromResource(path.getPathType().getIcon())));
+            mMarkerToPath.put(marker, path);
         }
 
-        return mMap.addPolyline(polylineOptions);
+        Polyline result = mMap.addPolyline(polylineOptions);
+        mPolylineToPath.put(result, path);
+        return result;
 
     }
 
@@ -396,5 +420,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         boolean createdByMe = true;
         polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
         return mMap.addPolyline(polylineOptions);
+    }
+
+    public void showPathReviews(Path path) {
+        if (path == null) return;
+        ReviewsDialog dialog = ReviewsDialog.newInstance(path);
+        dialog.show(getFragmentManager(), "Reviews");
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        Path path = mMarkerToPath.get(marker);
+        if (path != null) {
+            showPathReviews(path);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onPolylineClick(Polyline polyline) {
+        Path path = mPolylineToPath.get(polyline);
+        if (path != null) {
+            showPathReviews(path);
+        }
     }
 }
