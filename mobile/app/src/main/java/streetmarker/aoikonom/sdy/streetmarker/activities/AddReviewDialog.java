@@ -31,16 +31,18 @@ public class AddReviewDialog extends DialogFragment implements DialogInterface.O
     }
 
     private Path mPath;
+    private UserInfo mReviewer;
     private ReviewListener mListener;
 
-    private AddReviewDialog(Path path,ReviewListener listener) {
+    private AddReviewDialog(UserInfo reviewer,Path path,ReviewListener listener) {
         super();
         this.mPath = path;
+        this.mReviewer = reviewer;
         this.mListener = listener;
     }
 
-    public static AddReviewDialog newInstance(Path path,ReviewListener listener) {
-        return new AddReviewDialog(path, listener);
+    public static AddReviewDialog newInstance(UserInfo mReviewer,Path path,ReviewListener listener) {
+        return new AddReviewDialog(mReviewer, path, listener);
     }
 
 
@@ -53,7 +55,7 @@ public class AddReviewDialog extends DialogFragment implements DialogInterface.O
         mRatingBar = dialogView.findViewById(R.id.rating);
         mRatingBar.setNumStars(5);
 
-        mUserNameTextView.setText(UserInfo.getInstance().getUserName());
+        mUserNameTextView.setText(mReviewer.getUserName());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(R.string.write_review)
@@ -73,11 +75,12 @@ public class AddReviewDialog extends DialogFragment implements DialogInterface.O
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
-        String userName = UserInfo.getInstance().getUserName();
+        String userName = mReviewer.getUserName();
+        String userId = mReviewer.getKey();
         String comments = mCommentsTextView.getText().toString();
         float rating = mRatingBar.getRating();
 
-        Review review = new Review(userName, rating, comments);
-        DB.addReview(mPath, review);
+        Review review = new Review(userId, userName, rating, comments);
+        DB.addReview(mReviewer, mPath, review);
     }
 }

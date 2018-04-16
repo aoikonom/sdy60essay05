@@ -9,26 +9,12 @@ import java.io.Serializable;
 public class UserInfo implements Serializable {
     private String userName;
     private String key;
-    private float totalRating;
-    private int ratingsCount;
+    private int points;
 
 
-    private UserInfo(String key,String userName) {
+    public UserInfo(String key,String userName) {
         this.key = key;
         this.userName = userName;
-    }
-
-    private static UserInfo mInstance;
-
-    public static UserInfo getInstance() { return mInstance; }
-
-    public static void setmInstance(UserInfo userInfo) {
-        mInstance = userInfo;
-    }
-
-    public static UserInfo newInstance(String key,String name) {
-        mInstance = new UserInfo(key, name);
-        return mInstance;
     }
 
     public UserInfo() {
@@ -49,15 +35,15 @@ public class UserInfo implements Serializable {
 
 
     public void addRating(float rating) {
-        totalRating += rating;
-        ratingsCount ++;
+        int addPoints = 10*((int)(rating * 2) - 5);
+        points += addPoints;
     }
 
-    public float getTotalRating() {
-        return totalRating;
+    public void copyPoints(UserInfo otherUser) {
+        this.points = otherUser.points;
     }
 
-    public int getRatingsCount() {
-        return ratingsCount;
+    public int getPoints() {
+        return points;
     }
 }

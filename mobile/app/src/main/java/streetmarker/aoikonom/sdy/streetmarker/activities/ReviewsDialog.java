@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,19 +17,23 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 import streetmarker.aoikonom.sdy.streetmarker.R;
 import streetmarker.aoikonom.sdy.streetmarker.adapters.ReviewAdapter;
 import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.Review;
+import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.PathType;
 
 import static android.content.DialogInterface.BUTTON_POSITIVE;
 
-public class ReviewsDialog extends DialogFragment implements View.OnClickListener, AddReviewDialog.ReviewListener {
+public class ReviewsDialog extends DialogFragment implements View.OnClickListener, AddReviewDialog.ReviewListener, Path.RatingChangedListner {
     private TextView mNameTextView;
     private TextView mDescriptionTextView;
     private ImageView mTypeImageView;
@@ -39,15 +44,17 @@ public class ReviewsDialog extends DialogFragment implements View.OnClickListene
     private ReviewAdapter mAdapater;
 
     private Path mPath;
+    private UserInfo mUserInfo;
 
 
-    private ReviewsDialog(Path path) {
+    private ReviewsDialog(UserInfo userInfo,Path path) {
         super();
+        this.mUserInfo = userInfo;
         this.mPath = path;
     }
 
-    public static ReviewsDialog newInstance(Path path) {
-        return new ReviewsDialog(path);
+    public static ReviewsDialog newInstance(UserInfo userInfo,Path path) {
+        return new ReviewsDialog(userInfo, path);
     }
 
 
@@ -60,17 +67,14 @@ public class ReviewsDialog extends DialogFragment implements View.OnClickListene
         mTypeImageView = dialogView.findViewById(R.id.path_type_image);
         mRatingTextView = dialogView.findViewById(R.id.avg_rating_text);
         mRatingBar = dialogView.findViewById(R.id.avg_rating);
-        mRatingBar.setNumStars(5);
         mRecyclerView = dialogView.findViewById(R.id.reviews);
         mReviewBtn = dialogView.findViewById(R.id.add_review_btn);
 
         mReviewBtn.setOnClickListener(this);
-
-        if (mPath != null) {
-            Query query = FirebaseDatabase.getInstance().getReference("StreetMarker/reviews/").child(mPath.getKey());
-            mAdapater = ReviewAdapter.newAdapter(query, getActivity());
-            mRecyclerView.setAdapter(mAdapater);
-        }
+        mRecyclerView.setHasFixedSize(true);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        mRatingBar.setNumStars(5);
+        mRatingBar.setEnabled(false);
 
         if (mPath != null) {
             mNameTextView.setText(mPath.getName());
@@ -107,13 +111,23 @@ public class ReviewsDialog extends DialogFragment implements View.OnClickListene
     @Override
     public void onStart() {
         super.onStart();
-        mAdapater.startListening();
+        if (mPath != null) {
+            mPath.addListener(this);
+            Query query = FirebaseDatabase.getInstance().getReference("StreetMarker/Reviews/").child(mPath.getKey());
+
+            mAdapater = ReviewAdapter.newAdapter(query, getActivity());
+            mRecyclerView.setAdapter(mAdapater);
+            mAdapater.startListening();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        mAdapater.stopListening();
+        if (mPath != null)
+            mPath.removeListener(this);
+        if (mAdapater != null)
+            mAdapater.stopListening();
     }
 
     @Override
@@ -124,7 +138,7 @@ public class ReviewsDialog extends DialogFragment implements View.OnClickListene
     @Override
     public void onClick(View v) {
         if (v == mReviewBtn) {
-            AddReviewDialog dialog = AddReviewDialog.newInstance(mPath, this);
+            AddReviewDialog dialog = AddReviewDialog.newInstance(mUserInfo, mPath, this);
             dialog.show(getFragmentManager(), "Add Review");
 
         }
@@ -133,5 +147,10 @@ public class ReviewsDialog extends DialogFragment implements View.OnClickListene
     @Override
     public void onReviewAdded(Path path, Review review) {
 
+    }
+
+    @Override
+    public void onRatingChanged(float newRating) {
+        this.mRatingBar.setRating(newRating);
     }
 }

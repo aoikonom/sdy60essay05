@@ -28,17 +28,17 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
     private IPathRetrieval mListener;
 
     private Coordinates mCoordinates;
-    private String mUserName;
+    private UserInfo mUserInfo;
 
 
-    private AddPathDialog(String userName,Coordinates coordinates) {
+    private AddPathDialog(UserInfo userInfo,Coordinates coordinates) {
         super();
-        this.mUserName = userName;
+        this.mUserInfo = userInfo;
         this.mCoordinates = coordinates;
     }
 
-    public static AddPathDialog newInstance(String userName,Coordinates coordinates) {
-        return new AddPathDialog(userName, coordinates);
+    public static AddPathDialog newInstance(UserInfo userInfo,Coordinates coordinates) {
+        return new AddPathDialog(userInfo, coordinates);
     }
 
 
@@ -82,7 +82,7 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
                 String name = mNameTextView.getText().toString();
                 String description = mDescriptionTextView.getText().toString();
                 PathType pathType = (PathType) mTypeSpinner.getSelectedItem();
-                Path path = new Path(null, name, description, UserInfo.getInstance().getUserName(),  UserInfo.getInstance().getKey(), mCoordinates, pathType, 0, 0);
+                Path path = new Path(null, name, description, mUserInfo.getUserName(),  mUserInfo.getKey(), mCoordinates, pathType, 0, 0);
                 if (mListener != null)
                     mListener.onPathAdded(path, true);
         }

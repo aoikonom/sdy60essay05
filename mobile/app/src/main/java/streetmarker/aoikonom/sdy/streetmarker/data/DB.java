@@ -1,12 +1,10 @@
 package streetmarker.aoikonom.sdy.streetmarker.data;
 
-import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
 
 
@@ -99,26 +97,28 @@ public class DB {
         path.setKey(key);
     }
 
-    public static void addReview(final Path path,final Review review) {
+    public static void addReview(final UserInfo reviewer,final Path path,final Review review) {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Reviews/").child(path.getKey());
         String key = ref.push().getKey();
         ref.child(key).setValue(review);
 
         ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Paths/").child(path.getKey());
-        ref.addValueEventListener(new ValueEventListener() {
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Long ratingsCount = (Long) dataSnapshot.child("ratings_count").getValue();
-                Float totalRating = (Float) dataSnapshot.child("total_rating").getValue();
-                if (ratingsCount == null)
-                    ratingsCount = new Long(0);
-                if (totalRating == null)
-                    totalRating = new Float(0);
-                ratingsCount = new Long(ratingsCount.intValue() + 1);
-                totalRating = new Float(totalRating.floatValue() + review.getRating());
-                dataSnapshot.child("ratings_count").getRef().setValue(ratingsCount);
-                dataSnapshot.child("total_rating").getRef().setValue(totalRating);
-                path.addRating(review.getRating());
+                if (dataSnapshot.exists()) {
+                    PathFB loadedPathFB = dataSnapshot.getValue(PathFB.class);
+                    try {
+                        Path loadedPath = Path.fromPathFB(dataSnapshot.getKey(), loadedPathFB);
+                        loadedPath.addRating(review.getRating());
+                        loadedPathFB = loadedPath.toPathFB();
+                        dataSnapshot.getRef().setValue(loadedPathFB);
+                        path.copyRating(loadedPath);
+                    }
+                    catch (ParseException ex) {
+                        ex.printStackTrace();
+                    }
+                }
             }
 
             @Override
@@ -128,19 +128,15 @@ public class DB {
         });
 
         ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Users/").child(path.getCreateByUserId());
-        ref.addValueEventListener(new ValueEventListener() {
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Long ratingsCount = (Long) dataSnapshot.child("ratings_count").getValue();
-                Float totalRating = (Float) dataSnapshot.child("total_rating").getValue();
-                if (ratingsCount == null)
-                    ratingsCount = new Long(0);
-                if (totalRating == null)
-                    totalRating = new Float(0);
-                ratingsCount = new Long(ratingsCount.intValue() + 1);
-                totalRating = new Float(totalRating.floatValue() + review.getRating());
-                dataSnapshot.child("ratings_count").getRef().setValue(ratingsCount);
-                dataSnapshot.child("total_rating").getRef().setValue(totalRating);
+                if (dataSnapshot.exists()) {
+                    UserInfo loadedUser = dataSnapshot.getValue(UserInfo.class);
+                    loadedUser.addRating(review.getRating());
+                    dataSnapshot.getRef().setValue(loadedUser);
+                    reviewer.copyPoints(loadedUser);
+                }
             }
 
 

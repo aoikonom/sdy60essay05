@@ -24,6 +24,12 @@ public class Path {
     private int mRatingsCount;
     private float mTotalRating;
 
+    public interface RatingChangedListner {
+        void onRatingChanged(float newRating);
+    }
+
+    private List<RatingChangedListner> mListeners = new ArrayList<>();
+
     public Path(String key,String name,String description,String createdByUser,String createByUserId,Coordinates coordinates,PathType pathType,int ratingsCount,float totalRating) {
         this.mKey = key;
         this.mName = name;
@@ -79,7 +85,7 @@ public class Path {
         if (mRatingsCount == 0)
             return -1;
         else
-            return Math.round(mTotalRating * 1.0 / mRatingsCount * 100) / 100;
+            return (float) (Math.round(mTotalRating * 1.0 / mRatingsCount * 2) / 2.0);
     }
 
     public String getKey() {
@@ -93,5 +99,22 @@ public class Path {
     public void addRating(float rating) {
         mTotalRating += rating;
         mRatingsCount ++;
+        for (RatingChangedListner listner : mListeners)
+            listner.onRatingChanged(getAvgRating());
+    }
+
+    public void copyRating(Path otherPath) {
+        this.mRatingsCount = otherPath.getRatingsCount();
+        this.mTotalRating = otherPath.getTotalRating();
+        for (RatingChangedListner listner : mListeners)
+            listner.onRatingChanged(getAvgRating());
+    }
+
+    public void addListener(RatingChangedListner listener) {
+        mListeners.add(listener);
+    }
+
+    public void removeListener(RatingChangedListner listener) {
+        mListeners.remove(listener);
     }
 }

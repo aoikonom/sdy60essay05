@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Marker mCurrentPosMarker;
     private boolean mResolvingError = false;
 
+    private UserInfo mUserInfo;
     private Coordinates mCurrentCoordinates;
     private Polyline mCurrentPolyline;
 
@@ -330,9 +331,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onUserRetrieved(UserInfo userInfo) {
         if (userInfo != null)
-            UserInfo.setmInstance(userInfo);
+            mUserInfo = userInfo;
         else {
-            UserInfo.newInstance(FirebaseAuth.getInstance().getUid(), FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
+            mUserInfo = new UserInfo(FirebaseAuth.getInstance().getUid(), FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
 //            DB.addUserInfo(FirebaseAuth.getInstance().getUid(), mUserInfo);
         }
 
@@ -384,7 +385,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void onPathFinished(Coordinates coordinates) {
         if (coordinates == null || coordinates.size() == 0) return;
-        AddPathDialog dialog = AddPathDialog.newInstance(UserInfo.getInstance().getUserName(), coordinates);
+        AddPathDialog dialog = AddPathDialog.newInstance(mUserInfo, coordinates);
         dialog.show(getFragmentManager(), "AddPathDialog");
     }
 
@@ -398,7 +399,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public Polyline drawPath(final Path path) {
         PolylineOptions polylineOptions = new PolylineOptions();
-        boolean createdByMe = path.getCreatedByUser().equals(UserInfo.getInstance().getUserName());
+        boolean createdByMe = path.getCreatedByUser().equals(mUserInfo.getUserName());
         polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
         polylineOptions.add(path.getCoordinates().getPoints().toArray(new LatLng[path.getCoordinates().size()]));
         if (path.getCoordinates().size() > 0) {
@@ -411,6 +412,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         Polyline result = mMap.addPolyline(polylineOptions);
         mPolylineToPath.put(result, path);
+        result.setClickable(true);
         return result;
 
     }
@@ -424,7 +426,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void showPathReviews(Path path) {
         if (path == null) return;
-        ReviewsDialog dialog = ReviewsDialog.newInstance(path);
+        ReviewsDialog dialog = ReviewsDialog.newInstance(mUserInfo, path);
         dialog.show(getFragmentManager(), "Reviews");
     }
 

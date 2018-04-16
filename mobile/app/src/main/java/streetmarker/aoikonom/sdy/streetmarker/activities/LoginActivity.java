@@ -135,7 +135,6 @@ public class LoginActivity extends AppCompatActivity {
     public void openMainActivity() {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
-        finish();
     }
 
     public static String getUserName(String email) {
