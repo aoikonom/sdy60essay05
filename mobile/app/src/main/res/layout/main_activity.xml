@@ -20,13 +20,39 @@
         android:src="@drawable/ic_record"
         android:layout_marginTop="20dp"/>
     <ImageView
+        android:id="@+id/goto_current_location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/ic_my_location"
+        android:layout_toLeftOf="@id/record_icon"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="20dp"/>
+    <ImageView
         android:id="@+id/logout_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/logout"
-        android:layout_toLeftOf="@id/record_icon"
+        android:layout_toLeftOf="@id/goto_current_location"
         android:layout_marginRight="10dp"
         android:layout_marginTop="20dp"/>
+    <ImageView
+        android:id="@+id/path_list_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_paths"
+        android:layout_toRightOf="@id/record_icon"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="20dp"/>
+    <ImageView
+        android:id="@+id/leader_board_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_leaderboard"
+        android:layout_toRightOf="@id/path_list_icon"
+        android:layout_marginLeft="10dp"
+        android:layout_marginTop="20dp"/>
+
     </RelativeLayout>
 
 </fragment>

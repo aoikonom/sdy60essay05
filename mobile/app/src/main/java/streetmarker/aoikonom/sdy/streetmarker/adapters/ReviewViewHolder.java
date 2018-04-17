@@ -1,11 +1,11 @@
 package streetmarker.aoikonom.sdy.streetmarker.adapters;
 
-import android.support.v7.widget.RecyclerView;
-import android.view.View;
-import android.widget.RatingBar;
-import android.widget.TextView;
+        import android.support.v7.widget.RecyclerView;
+        import android.view.View;
+        import android.widget.RatingBar;
+        import android.widget.TextView;
 
-import streetmarker.aoikonom.sdy.streetmarker.R;
+        import streetmarker.aoikonom.sdy.streetmarker.R;
 
 public class ReviewViewHolder extends RecyclerView.ViewHolder{
     private static final String TAG = ReviewViewHolder.class.getSimpleName();

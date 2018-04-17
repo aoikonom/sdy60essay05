@@ -1,7 +1,6 @@
 package streetmarker.aoikonom.sdy.streetmarker.activities;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
@@ -10,7 +9,6 @@ import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
@@ -44,6 +42,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +50,7 @@ import streetmarker.aoikonom.sdy.streetmarker.*;
 import streetmarker.aoikonom.sdy.streetmarker.data.DB;
 import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.IUserRetrieval;
+import streetmarker.aoikonom.sdy.streetmarker.data.PathFB;
 import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
@@ -63,12 +63,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int REQUEST_RESOLVE_ERROR = 2;
     private static final int REQUEST_CHECK_SETTINGS = 3;
     private static final float TRACK_DISTANCE_MORE_THAN = 5;
+    private static final int RC_PATH = 1;
     private GoogleMap mMap;
     private ImageView mRecordImageView;
     private ImageView mSighoutImageView;
+    private ImageView mPathListImageView;
+    private ImageView mGotoMyLocationImageView;
+    private ImageView mLeaderBoardImageView;
     private GoogleApiClient mGoogleApiClient;
     private Location mCurrentLocation;
     private Location mAddedLcoation;
+    private boolean returnedFromPathList = false;
     private boolean cameraInitialized = false;
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
@@ -82,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Coordinates mCurrentCoordinates;
     private Polyline mCurrentPolyline;
 
+    private ArrayList<Path> mPaths = new ArrayList<>();
     private Map<Marker, Path> mMarkerToPath = new HashMap<>();
     private Map<Polyline, Path> mPolylineToPath = new HashMap<>();
 
@@ -99,6 +105,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mSighoutImageView = findViewById(R.id.logout_icon);
         mSighoutImageView.setOnClickListener(this);
+
+        mPathListImageView = findViewById(R.id.path_list_icon);
+        mPathListImageView.setOnClickListener(this);
+
+        mGotoMyLocationImageView = findViewById(R.id.goto_current_location);
+        mGotoMyLocationImageView.setOnClickListener(this);
+
+        mLeaderBoardImageView = findViewById(R.id.leader_board_icon);
+        mLeaderBoardImageView.setOnClickListener(this);
 
         //Instantiating the GoogleApiClient
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -127,7 +142,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
-        cameraInitialized = false;
+        if (!returnedFromPathList)
+            cameraInitialized = false;
+        returnedFromPathList = false;
     }
 
     @Override
@@ -194,7 +211,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mCurrentLocation = location;
         if (mGamePhase == GamePhase.Recording || !cameraInitialized)
-            initCamera(mCurrentLocation);
+            moveCamera(mCurrentLocation);
         if (mCurrentPosMarker == null)
             mCurrentPosMarker = mMap.addMarker(new MarkerOptions().
                     position(new LatLng(location.getLatitude(), location.getLongitude())).
@@ -204,7 +221,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void requestLocation() {
-        DB.retrieveUserInfo(FirebaseAuth.getInstance().getUid(), this);
+        if (mUserInfo == null)
+            DB.retrieveUserInfo(FirebaseAuth.getInstance().getUid(), this);
 
         mFusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, new OnSuccessListener<Location>() {
@@ -264,10 +282,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    private void initCamera(Location location) {
+    private void moveCamera(Location location) {
+        moveCamera(new LatLng(location.getLatitude(), location.getLongitude()));
+    }
+
+    private void moveCamera(LatLng location) {
+        cameraInitialized = true;
+
         CameraPosition position = CameraPosition.builder()
-                .target(new LatLng(location.getLatitude(),
-                        location.getLongitude()))
+                .target(location)
                 .zoom(16f)
                 .bearing(0.0f)
                 .tilt(0.0f)
@@ -278,8 +301,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         mMap.getUiSettings().setZoomControlsEnabled( true );
-
-        cameraInitialized = true;
     }
 
 
@@ -360,18 +381,73 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             onStopRecordingPath();
     }
 
+    private void onRecordIconClicked() {
+        if (mGamePhase == GamePhase.NotRecording) {
+            mGamePhase = GamePhase.Recording;
+        } else if (mGamePhase == GamePhase.Recording) {
+            mGamePhase = GamePhase.NotRecording;
+        }
+        onGamePhaseChanged();
+    }
+
+    private void onPathListIconClicked() {
+        Intent intent = new Intent(this, PathListActivity.class);
+        Bundle bundle = new Bundle();
+        ArrayList<PathFB> pathsFB = new ArrayList<>();
+        for (Path path : mPaths)
+            pathsFB.add(path.toPathFB());
+        bundle.putSerializable(PathListActivity.PATHS_ARGUMENT, pathsFB);
+        intent.putExtras(bundle);
+        startActivityForResult(intent, RC_PATH);
+    }
+
+    void onGotoMyLocation() {
+        if (mCurrentLocation != null)
+            moveCamera(mCurrentLocation);
+    }
+
+    void onLeaderBoardClicked() {
+        Intent intent = new Intent(this, LeaderBoardActivity.class);
+        startActivity(intent);
+    }
+
     @Override
     public void onClick(View v) {
         if (v == mRecordImageView) {
-            if (mGamePhase == GamePhase.NotRecording) {
-                mGamePhase = GamePhase.Recording;
-            } else if (mGamePhase == GamePhase.Recording) {
-                mGamePhase = GamePhase.NotRecording;
-            }
-            onGamePhaseChanged();
+            onRecordIconClicked();
         }
         else if (v == mSighoutImageView) {
             signOut();
+        }
+        else if (v == mPathListImageView) {
+            onPathListIconClicked();
+        }
+        else if (v == mGotoMyLocationImageView) {
+            onGotoMyLocation();
+        }
+        else if (v == mLeaderBoardImageView) {
+            onLeaderBoardClicked();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case RC_PATH:
+                if (resultCode == RESULT_OK) {
+                    int position = data.getIntExtra(PathListActivity.PATH_POSITION, -1);
+                    if (position < 0 || position >= mPaths.size())
+                        return;
+                    Path path = mPaths.get(position);
+                    if (path != null)
+                        if (path.getCoordinates() != null)
+                            if (path.getCoordinates().size() > 0) {
+                                LatLng location = path.getCoordinates().getPoints().get(0);
+                                returnedFromPathList = true;
+                                moveCamera(location);
+                            }
+                }
         }
     }
 
@@ -395,6 +471,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             DB.addPath(path);
         else
             drawPath(path);
+
+        mPaths.add(path);
+    }
+
+    @Override
+    public void onPathCanceled() {
+        mCurrentCoordinates = new Coordinates();
+        if (mCurrentPolyline != null)
+            mCurrentPolyline.remove();
     }
 
     public Polyline drawPath(final Path path) {

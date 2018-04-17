@@ -19,6 +19,7 @@ import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.PathType;
 
+import static android.content.DialogInterface.BUTTON_NEGATIVE;
 import static android.content.DialogInterface.BUTTON_POSITIVE;
 
 public class AddPathDialog extends DialogFragment implements DialogInterface.OnClickListener {
@@ -56,12 +57,7 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(R.string.add_path)
                 .setPositiveButton("OK", this)
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-                })
+                .setNegativeButton("Cancel", this)
                 .setCancelable(true)
                 .setView(dialogView);
 
@@ -85,6 +81,10 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
                 Path path = new Path(null, name, description, mUserInfo.getUserName(),  mUserInfo.getKey(), mCoordinates, pathType, 0, 0);
                 if (mListener != null)
                     mListener.onPathAdded(path, true);
+                break;
+            case BUTTON_NEGATIVE:
+                if (mListener != null)
+                    mListener.onPathCanceled();;
         }
     }
 }

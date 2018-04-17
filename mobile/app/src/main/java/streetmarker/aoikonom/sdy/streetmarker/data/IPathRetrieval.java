@@ -10,4 +10,5 @@ import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 
 public interface IPathRetrieval {
     void onPathAdded(Path path,boolean newPath);
+    void onPathCanceled();
 }

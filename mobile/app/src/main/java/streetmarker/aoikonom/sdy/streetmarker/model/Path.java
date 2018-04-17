@@ -2,6 +2,7 @@ package streetmarker.aoikonom.sdy.streetmarker.model;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,7 @@ import streetmarker.aoikonom.sdy.streetmarker.utils.PathType;
  * Created by aoiko on 11/4/2018.
  */
 
-public class Path {
+public class Path implements Serializable {
     private String mKey;
     private String mName;
     private String mDescription;

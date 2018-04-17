@@ -2,6 +2,7 @@ package streetmarker.aoikonom.sdy.streetmarker.model;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.Serializable;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ import java.util.Locale;
  * Created by aoiko on 12/4/2018.
  */
 
-public class Coordinates {
+public class Coordinates implements Serializable {
     private List<LatLng> mPoints;
 
     public Coordinates(List<LatLng> mPoints) {

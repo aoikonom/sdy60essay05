@@ -1,10 +1,12 @@
 package streetmarker.aoikonom.sdy.streetmarker.data;
 
+import java.io.Serializable;
+
 /**
  * Created by aoiko on 11/4/2018.
  */
 
-public class PathFB {
+public class PathFB implements Serializable {
     private String name;
     private String desciption;
     private String createdByUser;

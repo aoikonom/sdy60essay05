@@ -1,6 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="streetmarker.aoikonom.sdy.streetmarker">
-
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -30,7 +30,7 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name="streetmarker.aoikonom.sdy.streetmarker.activities.LoginActivity"
+            android:name=".activities.LoginActivity"
             android:label="@string/title_activity_main"
             android:noHistory="true">
             <intent-filter>
@@ -40,7 +40,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="streetmarker.aoikonom.sdy.streetmarker.activities.MainActivity"
+            android:name=".activities.MainActivity"
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_main">
             <intent-filter>
@@ -48,9 +48,11 @@
             </intent-filter>
         </activity>
 
-        <service android:name="streetmarker.aoikonom.sdy.streetmarker.activities.GeofenceTrasitionService" />
+        <service android:name=".activities.GeofenceTrasitionService" />
 
-        <activity android:name="streetmarker.aoikonom.sdy.streetmarker.activitiesVideoActivity"></activity>
+        <activity android:name=".activitiesVideoActivity" />
+        <activity android:name=".activities.PathListActivity" />
+        <activity android:name=".activities.LeaderBoardActivity"></activity>
     </application>
 
 </manifest>
