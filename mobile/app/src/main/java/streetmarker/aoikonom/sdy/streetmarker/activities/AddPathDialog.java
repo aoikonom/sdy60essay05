@@ -15,6 +15,7 @@ import streetmarker.aoikonom.sdy.streetmarker.R;
 import streetmarker.aoikonom.sdy.streetmarker.adapters.PathTypeAdapter;
 import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
+import streetmarker.aoikonom.sdy.streetmarker.model.CurrentDesignPath;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.PathType;
@@ -28,18 +29,18 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
     private Spinner mTypeSpinner;
     private IPathRetrieval mListener;
 
-    private Coordinates mCoordinates;
+    private CurrentDesignPath mCurrentDesignPath;
     private UserInfo mUserInfo;
 
 
-    private AddPathDialog(UserInfo userInfo,Coordinates coordinates) {
+    private AddPathDialog(UserInfo userInfo,CurrentDesignPath currentDesignPath) {
         super();
         this.mUserInfo = userInfo;
-        this.mCoordinates = coordinates;
+        this.mCurrentDesignPath = currentDesignPath;
     }
 
-    public static AddPathDialog newInstance(UserInfo userInfo,Coordinates coordinates) {
-        return new AddPathDialog(userInfo, coordinates);
+    public static AddPathDialog newInstance(UserInfo userInfo,CurrentDesignPath currentDesignPath) {
+        return new AddPathDialog(userInfo, currentDesignPath);
     }
 
 
@@ -78,7 +79,10 @@ public class AddPathDialog extends DialogFragment implements DialogInterface.OnC
                 String name = mNameTextView.getText().toString();
                 String description = mDescriptionTextView.getText().toString();
                 PathType pathType = (PathType) mTypeSpinner.getSelectedItem();
-                Path path = new Path(null, name, description, mUserInfo.getUserName(),  mUserInfo.getKey(), mCoordinates, pathType, 0, 0);
+                int distance = mCurrentDesignPath.distance();
+                int duration = mCurrentDesignPath.duration();
+                Path path = new Path(null, name, description, mUserInfo.getUserName(),  mUserInfo.getKey(), mCurrentDesignPath.getCoordinates(), pathType, 0, 0,
+                        distance, duration);
                 if (mListener != null)
                     mListener.onPathAdded(path, true);
                 break;

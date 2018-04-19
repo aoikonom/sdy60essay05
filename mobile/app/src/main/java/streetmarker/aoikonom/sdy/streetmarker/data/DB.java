@@ -93,8 +93,8 @@ public class DB {
     public static void addPath(Path path) {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("StreetMarker/Paths/");
         String key = ref.push().getKey();
-        ref.child(key).setValue(path.toPathFB());
         path.setKey(key);
+        ref.child(key).setValue(path.toPathFB());
     }
 
     public static void addReview(final UserInfo reviewer,final Path path,final Review review) {

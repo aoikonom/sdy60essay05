@@ -24,6 +24,8 @@ public class Path implements Serializable {
     private PathType mPathType;
     private int mRatingsCount;
     private float mTotalRating;
+    private int mDistance;
+    private int mDuration;
 
     public interface RatingChangedListner {
         void onRatingChanged(float newRating);
@@ -31,7 +33,8 @@ public class Path implements Serializable {
 
     private List<RatingChangedListner> mListeners = new ArrayList<>();
 
-    public Path(String key,String name,String description,String createdByUser,String createByUserId,Coordinates coordinates,PathType pathType,int ratingsCount,float totalRating) {
+    public Path(String key,String name,String description,String createdByUser,String createByUserId,Coordinates coordinates,PathType pathType,int ratingsCount,float totalRating,
+                int distance,int duration) {
         this.mKey = key;
         this.mName = name;
         this.mDescription = description;
@@ -41,15 +44,17 @@ public class Path implements Serializable {
         this.mPathType = pathType;
         this.mRatingsCount = ratingsCount;
         this.mTotalRating = totalRating;
+        this.mDistance = distance;
+        this.mDuration = duration;
     }
 
     public static Path fromPathFB(String key,PathFB pathFB) throws ParseException {
         return new Path(key, pathFB.getName(), pathFB.getDesciption(), pathFB.getCreatedByUser(), pathFB.getCreatedByUserId(), Coordinates.fromString(pathFB.getCoordinates()),
-                PathType.valueOf(pathFB.getType()), pathFB.getRatingsCount(), pathFB.getTotalRating());
+                PathType.valueOf(pathFB.getType()), pathFB.getRatingsCount(), pathFB.getTotalRating(), pathFB.getDistance(), pathFB.getDuration());
     }
 
     public PathFB toPathFB() {
-        return new PathFB(mName, mDescription, mCreatedByUser, mCreateByUserId, mCoordinates.toString(), mPathType.name(), mRatingsCount, mTotalRating);
+        return new PathFB(mName, mDescription, mCreatedByUser, mCreateByUserId, mCoordinates.toString(), mPathType.name(), mRatingsCount, mTotalRating, mDistance, mDuration);
     }
 
     public String getName() {
@@ -80,6 +85,14 @@ public class Path implements Serializable {
 
     public float getTotalRating() {
         return mTotalRating;
+    }
+
+    public int getmDistance() {
+        return mDistance;
+    }
+
+    public int getmDuration() {
+        return mDuration;
     }
 
     public float getAvgRating() {

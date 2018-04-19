@@ -43,6 +43,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +53,7 @@ import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.IUserRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.PathFB;
 import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
+import streetmarker.aoikonom.sdy.streetmarker.model.CurrentDesignPath;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.GamePhase;
@@ -84,8 +86,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean mResolvingError = false;
 
     private UserInfo mUserInfo;
-    private Coordinates mCurrentCoordinates;
-    private Polyline mCurrentPolyline;
+    private CurrentDesignPath mCurrentDesignPath;
 
     private ArrayList<Path> mPaths = new ArrayList<>();
     private Map<Marker, Path> mMarkerToPath = new HashMap<>();
@@ -199,12 +200,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onLocationAquired(Location location) {
         if (mGamePhase == GamePhase.Recording && mCurrentLocation != null) {
             if (mAddedLcoation == null || mAddedLcoation.distanceTo(location) > TRACK_DISTANCE_MORE_THAN) {
-                if (mCurrentCoordinates == null)
-                    mCurrentCoordinates = new Coordinates();
-                mCurrentCoordinates.add(new LatLng(location.getLatitude(), location.getLongitude()));
-                if (mCurrentPolyline != null) {
-                    mCurrentPolyline.setPoints(mCurrentCoordinates.getPoints());
-                }
+                if (mCurrentDesignPath == null)
+                    mCurrentDesignPath = new CurrentDesignPath();
+                mCurrentDesignPath.addPoint(new LatLng(location.getLatitude(), location.getLongitude()));
+
                 mAddedLcoation = location;
             }
         }
@@ -362,16 +361,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void onStartRecordingPath() {
+        mCurrentDesignPath = new CurrentDesignPath();
+        mCurrentDesignPath.start();
         mRecordImageView.setImageResource(R.drawable.ic_stop_record);
-        mCurrentCoordinates = new Coordinates();
         String msg = "Move arround to create a path \n\n";
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-        mCurrentPolyline = empryPolyline();
+        mCurrentDesignPath.setPolyline(empryPolyline());
     }
 
     private void onStopRecordingPath() {
         mRecordImageView.setImageResource(R.drawable.ic_record);
-        onPathFinished(mCurrentCoordinates);
+        onPathFinished();
     }
 
     private void onGamePhaseChanged() {
@@ -459,34 +459,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         finish();
     }
 
-    void onPathFinished(Coordinates coordinates) {
-        if (coordinates == null || coordinates.size() == 0) return;
-        AddPathDialog dialog = AddPathDialog.newInstance(mUserInfo, coordinates);
+    void onPathFinished() {
+        mAddedLcoation = null;
+        if (mCurrentDesignPath == null || !mCurrentDesignPath.hasCoordinates()) return;
+
+        mCurrentDesignPath.end();
+
+        AddPathDialog dialog = AddPathDialog.newInstance(mUserInfo, mCurrentDesignPath);
         dialog.show(getFragmentManager(), "AddPathDialog");
+    }
+
+    boolean pathExists(String key) {
+        for (Path path : mPaths)
+            if (path.getKey().equals(key))
+                return true;
+        return  false;
     }
 
     @Override
     public void onPathAdded(Path path,boolean newPath) {
+        boolean pathExists = pathExists(path.getKey());
+
         if (newPath)
             DB.addPath(path);
-        else
+        else if (!pathExists)
             drawPath(path);
 
-        mPaths.add(path);
+        if (!pathExists)
+            mPaths.add(path);
+
     }
 
     @Override
     public void onPathCanceled() {
-        mCurrentCoordinates = new Coordinates();
-        if (mCurrentPolyline != null)
-            mCurrentPolyline.remove();
+        if (mCurrentDesignPath != null)
+            mCurrentDesignPath.cancel();
     }
 
     public Polyline drawPath(final Path path) {
         PolylineOptions polylineOptions = new PolylineOptions();
         boolean createdByMe = path.getCreatedByUser().equals(mUserInfo.getUserName());
         polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
-        polylineOptions.add(path.getCoordinates().getPoints().toArray(new LatLng[path.getCoordinates().size()]));
+        LatLng[] coords = path.getCoordinates().getPoints().toArray(new LatLng[path.getCoordinates().size()]);
+        polylineOptions.add(coords);
         if (path.getCoordinates().size() > 0) {
             LatLng latLng = path.getCoordinates().getPoints().get(0);
             Marker marker = mMap.addMarker(new MarkerOptions().

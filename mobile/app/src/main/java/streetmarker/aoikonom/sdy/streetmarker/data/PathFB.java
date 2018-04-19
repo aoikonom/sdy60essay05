@@ -15,8 +15,11 @@ public class PathFB implements Serializable {
     private String type;
     private int ratingsCount;
     private float totalRating;
+    private int distance;
+    private int duration;
 
-    public PathFB(String name, String desciption, String createdByUser,String createdByUserId, String coordinates, String type,int ratingsCount,float totalRating) {
+    public PathFB(String name, String desciption, String createdByUser,String createdByUserId, String coordinates, String type,int ratingsCount,float totalRating,
+                  int distance,int duration) {
         this.name = name;
         this.desciption = desciption;
         this.createdByUser = createdByUser;
@@ -25,6 +28,8 @@ public class PathFB implements Serializable {
         this.type = type;
         this.ratingsCount = ratingsCount;
         this.totalRating = totalRating;
+        this.duration = duration;
+        this.distance = distance;
     }
 
     public PathFB() {
@@ -60,4 +65,8 @@ public class PathFB implements Serializable {
     public float getTotalRating() {
         return totalRating;
     }
+
+    public int getDistance() { return distance; }
+
+    public int getDuration() { return duration; }
 }

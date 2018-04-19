@@ -1,5 +1,7 @@
 package streetmarker.aoikonom.sdy.streetmarker.model;
 
+import android.location.Location;
+
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.Serializable;
@@ -36,13 +38,14 @@ public class Coordinates implements Serializable {
         return mPoints.size();
     }
 
-    private static String doubleToStr(double value) {
+    public static String doubleToStr(double value) {
         Locale locale = Locale.US;
         NumberFormat  nb = NumberFormat.getNumberInstance(locale);
+        nb.setMaximumFractionDigits(20);
         return nb.format(value);
     }
 
-    private static  double strToDouble(String value) throws ParseException {
+    public static  double strToDouble(String value) throws ParseException {
         Locale locale = Locale.US;
         NumberFormat  nb = NumberFormat.getNumberInstance(locale);
         return nb.parse(value).doubleValue();
@@ -83,4 +86,22 @@ public class Coordinates implements Serializable {
 
         return new Coordinates(points);
     }
+
+    public int distance() {
+        double result = 0.0;
+        for (int i = 1; i < mPoints.size(); i++) {
+            LatLng s = mPoints.get(i - 1);
+            LatLng e = mPoints.get(i);
+            Location sl = new Location("");
+            Location el = new Location("");
+            sl.setLatitude(s.latitude);
+            sl.setLongitude(s.longitude);
+            el.setLatitude(e.latitude);
+            el.setLongitude(e.longitude);
+            result += Math.abs(sl.distanceTo(el));
+        }
+        return (int)result;
+    }
+
+
 }
