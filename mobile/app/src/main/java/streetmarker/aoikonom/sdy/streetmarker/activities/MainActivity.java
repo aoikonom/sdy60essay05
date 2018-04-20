@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int REQUEST_LOCATION = 1;
     private static final int REQUEST_RESOLVE_ERROR = 2;
     private static final int REQUEST_CHECK_SETTINGS = 3;
-    private static final float TRACK_DISTANCE_MORE_THAN = 5;
+    private static final float TRACK_DISTANCE_MORE_THAN = 1;
     private static final int RC_PATH = 1;
     private GoogleMap mMap;
     private ImageView mRecordImageView;
