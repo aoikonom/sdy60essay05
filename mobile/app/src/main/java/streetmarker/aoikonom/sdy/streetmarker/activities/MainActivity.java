@@ -6,13 +6,22 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import edu.cmu.pocketsphinx.Assets;
+import edu.cmu.pocketsphinx.Hypothesis;
+import edu.cmu.pocketsphinx.RecognitionListener;
+import edu.cmu.pocketsphinx.SpeechRecognizer;
+import edu.cmu.pocketsphinx.SpeechRecognizerSetup;
+
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -42,8 +51,10 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,20 +63,26 @@ import streetmarker.aoikonom.sdy.streetmarker.data.DB;
 import streetmarker.aoikonom.sdy.streetmarker.data.IPathRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.IUserRetrieval;
 import streetmarker.aoikonom.sdy.streetmarker.data.PathFB;
-import streetmarker.aoikonom.sdy.streetmarker.model.Coordinates;
 import streetmarker.aoikonom.sdy.streetmarker.model.CurrentDesignPath;
 import streetmarker.aoikonom.sdy.streetmarker.model.Path;
 import streetmarker.aoikonom.sdy.streetmarker.model.UserInfo;
 import streetmarker.aoikonom.sdy.streetmarker.utils.GamePhase;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
-        IPathRetrieval, IUserRetrieval, View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnPolylineClickListener {
 
-    private static final int REQUEST_LOCATION = 1;
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
+        IPathRetrieval, IUserRetrieval, View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnPolylineClickListener, RecognitionListener  {
+
+    private static final int PERMISSION_REQUEST_LOCATION = 1;
+    private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 2;
     private static final int REQUEST_RESOLVE_ERROR = 2;
     private static final int REQUEST_CHECK_SETTINGS = 3;
     private static final float TRACK_DISTANCE_MORE_THAN = 1;
     private static final int RC_PATH = 1;
+    private static final String KWS_START = "start";
+    private static final String KWS_STOP = "stop";
+
+    /* Used to handle permission request */
+
     private GoogleMap mMap;
     private ImageView mRecordImageView;
     private ImageView mSighoutImageView;
@@ -80,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
     private FusedLocationProviderClient mFusedLocationClient;
-    private GamePhase mGamePhase = GamePhase.NotRecording;
+    private GamePhase mGamePhase = GamePhase.None;
 
     private Marker mCurrentPosMarker;
     private boolean mResolvingError = false;
@@ -91,6 +108,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ArrayList<Path> mPaths = new ArrayList<>();
     private Map<Marker, Path> mMarkerToPath = new HashMap<>();
     private Map<Polyline, Path> mPolylineToPath = new HashMap<>();
+
+    private SpeechRecognizer recognizer;
+    private String mCurrentListeningMode = KWS_START;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +158,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             };
         };
+
+    }
+
+    void askRecordingPermission() {
+        int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            PermissionUtils.requestPermission(this, PERMISSIONS_REQUEST_RECORD_AUDIO, Manifest.permission.RECORD_AUDIO, true);
+            return;
+        }
+        // Recognizer initialization is a time-consuming and it involves IO,
+        // so we execute it in async task
+        new SetupRecognizerTask(this).execute();
     }
 
     @Override
@@ -157,6 +190,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+
+    if (recognizer != null) {
+        recognizer.cancel();
+        recognizer.shutdown();
+        }
     }
 
     private void startLocationUpdates() {
@@ -183,6 +222,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMarkerClickListener(this);
         mMap.setOnPolylineClickListener(this);
 
+        mGamePhase = GamePhase.NotRecording;
+
     }
 
     //Callback invoked once the GoogleApiClient is connected successfully
@@ -190,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onConnected(Bundle bundle) {
         requestLocationCheckSettings();
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            PermissionUtils.requestPermission(this, REQUEST_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, true);
+            PermissionUtils.requestPermission(this, PERMISSION_REQUEST_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, true);
         } else {
             requestLocation();
         }
@@ -220,6 +261,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void requestLocation() {
+        askRecordingPermission();
+
         if (mUserInfo == null)
             DB.retrieveUserInfo(FirebaseAuth.getInstance().getUid(), this);
 
@@ -240,14 +283,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onRequestPermissionsResult(int requestCode,
                                            String[] permissions,
                                            int[] grantResults) {
-        if (requestCode == REQUEST_LOCATION) {
-            if(grantResults.length == 1
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // We can now safely use the API we requested access to
-                requestLocation();
-            } else {
-                // Permission was denied or request was cancelled
-            }
+        switch (requestCode) {
+            case PERMISSION_REQUEST_LOCATION:
+                if(grantResults.length == 1
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // We can now safely use the API we requested access to
+                    requestLocation();
+                } else {
+                    // Permission was denied or request was cancelled
+                }
+            break;
+            case PERMISSIONS_REQUEST_RECORD_AUDIO:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Recognizer initialization is a time-consuming and it involves IO,
+                    // so we execute it in async task
+                    new SetupRecognizerTask(this).execute();
+                }
+                break;
         }
     }
 
@@ -367,11 +419,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String msg = "Move arround to create a path \n\n";
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
         mCurrentDesignPath.setPolyline(empryPolyline());
+        mCurrentListeningMode = KWS_STOP;
     }
 
     private void onStopRecordingPath() {
         mRecordImageView.setImageResource(R.drawable.ic_record);
         onPathFinished();
+        mCurrentListeningMode = KWS_STOP;
     }
 
     private void onGamePhaseChanged() {
@@ -547,4 +601,134 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             showPathReviews(path);
         }
     }
+
+    void onVoiceCommand(String command) {
+        if (command.equals("start") && mGamePhase == GamePhase.NotRecording) {
+            mGamePhase = GamePhase.Recording;
+            onGamePhaseChanged();
+        }
+        else if (command.equals("stop") && mGamePhase == GamePhase.Recording) {
+            mGamePhase = GamePhase.NotRecording;
+            onGamePhaseChanged();
+        }
+    }
+
+    private static class SetupRecognizerTask extends AsyncTask<Void, Void, Exception> {
+        WeakReference<MainActivity> activityReference;
+        SetupRecognizerTask(MainActivity activity) {
+            this.activityReference = new WeakReference<>(activity);
+        }
+        @Override
+        protected Exception doInBackground(Void... params) {
+            try {
+                Assets assets = new Assets(activityReference.get());
+                File assetDir = assets.syncAssets();
+                activityReference.get().setupRecognizer(assetDir);
+            } catch (IOException e) {
+                return e;
+            }
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Exception result) {
+            if (result == null)
+                activityReference.get().listenToVoiceOmmands();
+        }
+    }
+
+    /**
+     * In partial result we get quick updates about current hypothesis. In
+     * keyword spotting mode we can react here, in other modes we need to wait
+     * for final result in onResult.
+     */
+    @Override
+    public void onPartialResult(Hypothesis hypothesis) {
+        if (hypothesis == null)
+            return;
+
+        String text = hypothesis.getHypstr();
+        onVoiceCommand(text);
+    }
+
+    /**
+     * This callback is called when we stop the recognizer.
+     */
+    @Override
+    public void onResult(Hypothesis hypothesis) {
+        if (hypothesis != null) {
+            String text = hypothesis.getHypstr();
+            onVoiceCommand(text);
+        }
+    }
+
+    @Override
+    public void onBeginningOfSpeech() {
+    }
+
+    /**
+     * We stop recognizer here to get a final result
+     */
+    @Override
+    public void onEndOfSpeech() {
+//        if (!recognizer.getSearchName().equals(KWS_SEARCH))
+//            listenToVoiceOmmands();
+    }
+
+    private void listenToVoiceOmmands() {
+        recognizer.stop();
+
+        recognizer.startListening(mCurrentListeningMode);
+
+    }
+
+    private void setupRecognizer(File assetsDir) throws IOException {
+        // The recognizer can be configured to perform multiple searches
+        // of different kind and switch between them
+
+        recognizer = SpeechRecognizerSetup.defaultSetup()
+                .setAcousticModel(new File(assetsDir, "en-us-ptm"))
+                .setDictionary(new File(assetsDir, "cmudict-en-us.dict"))
+
+                .setRawLogDir(assetsDir) // To disable logging of raw audio comment out this call (takes a lot of space on the device)
+
+                .getRecognizer();
+        recognizer.addListener(this);
+
+        /* In your application you might not need to add all those searches.
+          They are added here for demonstration. You can leave just one.
+         */
+
+        // Create keyword-activation search.
+        recognizer.addKeyphraseSearch(KWS_START, "start");
+        recognizer.addKeyphraseSearch(KWS_STOP, "stop");
+
+//        File KeyPhrasesGrammar = new File(assetsDir, "keyphrases.gram");
+//        recognizer.addKeywordSearch(KWS_START, KeyPhrasesGrammar);
+//
+//        // Create grammar-based search for selection between demos
+//        File menuGrammar = new File(assetsDir, "menu.gram");
+//        recognizer.addGrammarSearch(MENU_SEARCH, menuGrammar);
+//
+//        // Create grammar-based search for digit recognition
+//        File digitsGrammar = new File(assetsDir, "digits.gram");
+//        recognizer.addGrammarSearch(DIGITS_SEARCH, digitsGrammar);
+//
+//        // Create language model search
+//        File languageModel = new File(assetsDir, "weather.dmp");
+//        recognizer.addNgramSearch(FORECAST_SEARCH, languageModel);
+//
+//        // Phonetic search
+//        File phoneticModel = new File(assetsDir, "en-phone.dmp");
+//        recognizer.addAllphoneSearch(PHONE_SEARCH, phoneticModel);
+    }
+
+    @Override
+    public void onError(Exception error) {
+    }
+
+    @Override
+    public void onTimeout() {
+        listenToVoiceOmmands();
+    }
+
 }

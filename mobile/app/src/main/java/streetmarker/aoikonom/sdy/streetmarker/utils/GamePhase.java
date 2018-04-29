@@ -5,6 +5,7 @@ package streetmarker.aoikonom.sdy.streetmarker.utils;
  */
 
 public enum GamePhase {
+    None,
     NotRecording,
     Recording
 }
