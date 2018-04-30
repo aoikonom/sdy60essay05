@@ -78,8 +78,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int REQUEST_CHECK_SETTINGS = 3;
     private static final float TRACK_DISTANCE_MORE_THAN = 1;
     private static final int RC_PATH = 1;
-    private static final String KWS_START = "start";
-    private static final String KWS_STOP = "stop";
+    private static final String VOICE_MODE_START = "ModeStart";
+    private static final String VOICE_MODE_STOP = "ModeStop";
+    private static final String VOICE_MODE_MENU = "ModeMenu";
+    private static final String VOICE_MODE_KEYWORDS = "ModeKeywords";
+    private static final String VOICE_COMMAND_START = "start path";
+    private static final String VOICE_COMMAND_STOP = "stop path";
 
     /* Used to handle permission request */
 
@@ -110,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Map<Polyline, Path> mPolylineToPath = new HashMap<>();
 
     private SpeechRecognizer recognizer;
-    private String mCurrentListeningMode = KWS_START;
+    private String mCurrentVoiceMode = VOICE_MODE_START;
 
 
     @Override
@@ -158,6 +162,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             };
         };
+
+        Toast.makeText(this, "Press red button or say '" + VOICE_COMMAND_START + "' to start recording path", Toast.LENGTH_LONG).show();
 
     }
 
@@ -419,13 +425,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String msg = "Move arround to create a path \n\n";
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
         mCurrentDesignPath.setPolyline(empryPolyline());
-        mCurrentListeningMode = KWS_STOP;
+        mCurrentVoiceMode = VOICE_MODE_STOP;
+        listenToVoiceOmmands(VOICE_MODE_STOP);
+        Toast.makeText(this, "Press red button or say '" + VOICE_COMMAND_STOP + "' to finish recording path", Toast.LENGTH_LONG).show();
     }
 
     private void onStopRecordingPath() {
         mRecordImageView.setImageResource(R.drawable.ic_record);
         onPathFinished();
-        mCurrentListeningMode = KWS_STOP;
+        mCurrentVoiceMode = VOICE_MODE_STOP;
+        listenToVoiceOmmands(VOICE_MODE_START);
+
     }
 
     private void onGamePhaseChanged() {
@@ -553,7 +563,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public Polyline drawPath(final Path path) {
         PolylineOptions polylineOptions = new PolylineOptions();
         boolean createdByMe = path.getCreatedByUser().equals(mUserInfo.getUserName());
-        polylineOptions.color(createdByMe ? Color.rgb(255, 153, 51) : Color.rgb(0, 0, 179));
+        float review = path.getAvgRating();
+        int ratings = path.getRatingsCount();
+
+        int pathColor;
+
+        if (ratings == 0)
+            pathColor = Color.BLACK;
+        else {
+            if (review >= 4)
+                pathColor = Color.rgb(0, 0, 179);
+            else if (review >= 2.5)
+                pathColor = Color.rgb(255, 153, 51);
+            else
+                pathColor = Color.RED;
+        }
+
+        polylineOptions.color(pathColor);
         LatLng[] coords = path.getCoordinates().getPoints().toArray(new LatLng[path.getCoordinates().size()]);
         polylineOptions.add(coords);
         if (path.getCoordinates().size() > 0) {
@@ -603,11 +629,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void onVoiceCommand(String command) {
-        if (command.equals("start") && mGamePhase == GamePhase.NotRecording) {
+        if (command.equals(VOICE_COMMAND_START) && mGamePhase == GamePhase.NotRecording) {
             mGamePhase = GamePhase.Recording;
             onGamePhaseChanged();
         }
-        else if (command.equals("stop") && mGamePhase == GamePhase.Recording) {
+        else if (command.equals(VOICE_COMMAND_STOP) && mGamePhase == GamePhase.Recording) {
             mGamePhase = GamePhase.NotRecording;
             onGamePhaseChanged();
         }
@@ -632,7 +658,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPostExecute(Exception result) {
             if (result == null)
-                activityReference.get().listenToVoiceOmmands();
+                activityReference.get().listenToVoiceOmmands(VOICE_MODE_START);
         }
     }
 
@@ -657,7 +683,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onResult(Hypothesis hypothesis) {
         if (hypothesis != null) {
             String text = hypothesis.getHypstr();
-            onVoiceCommand(text);
+             onVoiceCommand(text);
         }
     }
 
@@ -674,10 +700,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //            listenToVoiceOmmands();
     }
 
-    private void listenToVoiceOmmands() {
+    private void listenToVoiceOmmands(String voiceMode) {
         recognizer.stop();
 
-        recognizer.startListening(mCurrentListeningMode);
+        recognizer.startListening(voiceMode);
 
     }
 
@@ -699,17 +725,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
          */
 
         // Create keyword-activation search.
-        recognizer.addKeyphraseSearch(KWS_START, "start");
-        recognizer.addKeyphraseSearch(KWS_STOP, "stop");
+        recognizer.addKeyphraseSearch(VOICE_MODE_START, VOICE_COMMAND_START);
+        recognizer.addKeyphraseSearch(VOICE_MODE_STOP, VOICE_COMMAND_STOP);
 
-//        File KeyPhrasesGrammar = new File(assetsDir, "keyphrases.gram");
-//        recognizer.addKeywordSearch(KWS_START, KeyPhrasesGrammar);
-//
-//        // Create grammar-based search for selection between demos
-//        File menuGrammar = new File(assetsDir, "menu.gram");
-//        recognizer.addGrammarSearch(MENU_SEARCH, menuGrammar);
-//
-//        // Create grammar-based search for digit recognition
+        File KeyPhrasesGrammar = new File(assetsDir, "keyphrases.gram");
+        recognizer.addKeywordSearch(VOICE_MODE_KEYWORDS, KeyPhrasesGrammar);
+
+        // Create grammar-based search for selection between demos
+        File menuGrammar = new File(assetsDir, "menu.gram");
+        recognizer.addGrammarSearch(VOICE_MODE_MENU, menuGrammar);
+
+        // Create grammar-based search for digit recognition
 //        File digitsGrammar = new File(assetsDir, "digits.gram");
 //        recognizer.addGrammarSearch(DIGITS_SEARCH, digitsGrammar);
 //
@@ -728,7 +754,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onTimeout() {
-        listenToVoiceOmmands();
+        listenToVoiceOmmands(mCurrentVoiceMode);
     }
 
 }
